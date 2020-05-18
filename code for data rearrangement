@@ -1,1 +1,26 @@
-
+group_total=subset(dat2,age>=18)# dat2 is the excel for all the patients' clinical records,here to pick up adults patients.
+group_total=subset(group_total,!(patient_sn%in%Negative ))#here to exclude patients who did not get COVID-19.
+#list codes for CRP as an example
+CRP$date=as.Date(CRP$date)
+CRP_log=CRP
+CRP_log$CRP_log=log2(CRP_log$CRP)
+library(dplyr)
+CRP_total=merge(group_total[,c('patient_sn','morbidity_date')],CRP_log,by= "patient_sn")
+CRP_total$days=CRP_total$date-CRP_total$morbidity_date
+CRP_total$days=as.numeric(CRP_total$days)
+CRP_total$weeks=ceiling(CRP_total$days/7)
+CRP_total$weeks=if_else(CRP_total$weeks >= 10,10,CRP_total$weeks)
+##用group_by分组
+  CRP_total_weeksrelated=CRP_total%>%
+    group_by(weeks)%>%
+    dplyr::summarise(
+      mean_CRP=mean(CRP,na.rm =T),
+      SD_CRP= sd(CRP, na.rm = T),
+      mean_CRP_log2=mean(CRP_log,na.rm =T),
+      SD_CRP_log2= sd(CRP_log, na.rm = T),
+      median_CRP = median(CRP,na.rm =T),
+      median_CRP_log2 = median(CRP_log,na.rm =T),
+      Q1_CRP = as.data.frame(quantile(CRP_log,na.rm =T))['25%',1],
+      Q3_CRP = as.data.frame(quantile(CRP_log,na.rm =T))['75%',1],
+      n = n()
+    )
